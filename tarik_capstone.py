@@ -55,7 +55,8 @@ sfOptions = {
   "sfPassword" : sfs['PASSWORD'],
   "sfDatabase" : sfs['DATABASE'],
   "sfSchema" : 'TARIK',
-  "sfWarehouse" : sfs['WAREHOUSE']
+  "sfWarehouse" : sfs['WAREHOUSE'],
+  "sfRole": sfs["ROLE"]
 }
 
-df_tosf.write.format(SNOWFLAKE_SOURCE_NAME).options(**sfOptions).option("dtable","Tarik").mode("overwrite").save()
+df_tosf.write.format(SNOWFLAKE_SOURCE_NAME).options(**sfOptions).option("dbtable","capstone_tarik").mode("overwrite").save()
