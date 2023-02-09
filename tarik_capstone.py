@@ -1,18 +1,25 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, SQLContext
 from pyspark import SparkConf
 from pyspark.sql.functions import col
-from pyspark.sql.types import DateType
+from pyspark.sql.types import *
 import boto3 
 import json
 
-
 # Task 1: Extract, transform and load weather data from S3 to Snowflake
-
 # 1. Set up spark and access the S3
+packages = [
+    "net.snowflake:spark-snowflake_2.12:2.9.0-spark_3.1",
+    "net.snowflake:snowflake-jdbc:3.13.3", 
+    "org.apache.hadoop:hadoop-aws:3.1.2"
+]
+
 config = {
-    "spark.jars.packages": "org.apache.hadoop:hadoop-aws:3.1.2",
-    "fs.s3a.aws.credentials.provider": "com.amazonaws.auth.DefaultAWSCredentialsProviderChain"
+    "spark.jars.packages": "," .join(packages),
+    "fs.s3a.aws.credentials.provider": "com.amazonaws.auth.DefaultAWSCredentialsProviderChain",
 }
+
+
+
 conf = SparkConf().setAll(config.items())
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
 df = spark.read.json(
@@ -29,7 +36,7 @@ unnest = df.select(
     col("date.local").cast(DateType()),
     col("date.utc").cast(DateType()))
 
-df2 = unnest.drop("coordinates", "date")
+df_tosf = unnest.drop("coordinates", "date")
 
 # 3. Retrieve Snowflake credentials 
 
@@ -37,12 +44,18 @@ client = boto3.client('secretsmanager')
 response = client.get_secret_value(
     SecretId = 'snowflake/capstone/login'
 )
-snowflake_secrets = json.loads(response['SecretString'])
+sfs = json.loads(response['SecretString'])
 
 # 4. Load to Snowflake
-from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext
-from pyspark.sql.types import *
-from pyspark import SparkConf, SparkContex
+# Set options below
+SNOWFLAKE_SOURCE_NAME = "net.snowflake.spark.snowflake"
+sfOptions = {
+  "sfURL" : sfs['URL'],
+  "sfUser" : sfs['USER_NAME'],
+  "sfPassword" : sfs['PASSWORD'],
+  "sfDatabase" : sfs['DATABASE'],
+  "sfSchema" : 'TARIK',
+  "sfWarehouse" : sfs['WAREHOUSE']
+}
 
-
+df_tosf.write.format(SNOWFLAKE_SOURCE_NAME).options(**sfOptions).option("dtable","Tarik").mode("overwrite").save()
