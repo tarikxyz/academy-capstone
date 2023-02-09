@@ -2,6 +2,10 @@ from pyspark.sql import SparkSession
 from pyspark import SparkConf
 from pyspark.sql.functions import col
 from pyspark.sql.types import DateType
+import boto3 
+import json
+
+
 # Task 1: Extract, transform and load weather data from S3 to Snowflake
 
 # 1. Set up spark and access the S3
@@ -28,3 +32,17 @@ unnest = df.select(
 df2 = unnest.drop("coordinates", "date")
 
 # 3. Retrieve Snowflake credentials 
+
+client = boto3.client('secretsmanager')
+response = client.get_secret_value(
+    SecretId = 'snowflake/capstone/login'
+)
+snowflake_secrets = json.loads(response['SecretString'])
+
+# 4. Load to Snowflake
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
+from pyspark.sql.types import *
+from pyspark import SparkConf, SparkContex
+
+
