@@ -60,3 +60,5 @@ sfOptions = {
 }
 
 df_tosf.write.format(SNOWFLAKE_SOURCE_NAME).options(**sfOptions).option("dbtable","capstone_tarik").mode("overwrite").save()
+
+## Task 2: Run PySpark application on the cloud
